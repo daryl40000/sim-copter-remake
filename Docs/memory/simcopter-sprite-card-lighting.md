@@ -200,6 +200,20 @@ The blended normal is world space, so `tangent_space_normal` must be **off**. Th
 needs `used_with_nanite` and `used_with_instanced_static_meshes`: trees ride both the merged city
 mesh and the per-model instanced building meshes (see [[simcopter-instanced-buildings]]).
 
+## Runtime cards without CityAtlas (2026-10-02)
+
+`MI_CityImage_*` is the baked path, and it is gitignored, so a machine that has never run
+`BakeCityAtlas.py` decodes `SIM3D.BMP` at city build and used to hang those faces on
+`M_SimCopterLitTexture`. That parent is opaque. Palette index 0 is the original blitter's skip
+colour (black), so every tree and sign drew as a picture inside a black rectangle.
+
+Runtime face types 2 and 13 now take their own section (`RuntimeMaskedDirectImageSectionKeyFlag`)
+and a dynamic instance of `M_SimCopterLitSpriteTexture`. The decoded texture is stored
+uncompressed (`TC_VectorDisplacementmap`), same as the pedestrian sprites: the default compression
+drops alpha, which puts the black rectangle straight back. Atlas cells stay on the opaque parent.
+Do not point the cards at `M_SimCopterSpriteTexture`: that one masks correctly and is unlit, which
+is the noon-dark / midnight-bright bug above.
+
 ## Traps for next time
 
 * **`MI_CityImage_*` is gitignored** (decoded original art). Re-parenting them is a pass at the end

@@ -145,6 +145,10 @@ constexpr int32 BakedDirectImageSectionKeyFlag = 0x20000;
 // Untextured face type 11 - the alpha-blended disc - gets its own section so it can be drawn with
 // a translucent material instead of landing in the opaque INDEX_NONE palette section.
 constexpr int32 TranslucentDiscSectionKeyFlag = 0x40000;
+// Runtime face types 2 and 13 (tree/sign cards and direct-image polygons) when CityAtlas was not
+// baked. Their texture key is only the low 16 bits; the flag keeps them off the opaque atlas
+// sections that can share that number, so the masked card material can punch out palette index 0.
+constexpr int32 RuntimeMaskedDirectImageSectionKeyFlag = 0x80000;
 
 struct FOriginalMeshSectionData
 {
@@ -296,6 +300,11 @@ UTexture2D* CreateTextureFromMaxisImage(const FMaxisTextureImage& Image, UObject
 		Texture->Rename(*TextureName.ToString(), Outer);
 	}
 
+	// Default compression throws the alpha channel away. Palette index 0 is the hole in a tree or
+	// sign sprite (the original blitter skips it), so a compressed texture draws that hole as a
+	// solid black rectangle. Same uncompressed setting the pedestrian sprites use.
+	Texture->CompressionSettings = TC_VectorDisplacementmap;
+	Texture->NeverStream = true;
 	Texture->SRGB = true;
 	Texture->Filter = TF_Nearest;
 	Texture->AddressX = TA_Wrap;
@@ -392,6 +401,16 @@ bool IsBakedDirectImageSectionKey(int32 SectionKey)
 bool IsTranslucentDiscSectionKey(int32 SectionKey)
 {
 	return SectionKey != INDEX_NONE && (SectionKey & TranslucentDiscSectionKeyFlag) != 0;
+}
+
+bool IsRuntimeMaskedDirectImageSectionKey(int32 SectionKey)
+{
+	return SectionKey != INDEX_NONE && (SectionKey & RuntimeMaskedDirectImageSectionKeyFlag) != 0;
+}
+
+int32 RuntimeMaskedDirectImageTextureKey(int32 SectionKey)
+{
+	return SectionKey & 0xFFFF;
 }
 
 int32 GetBakedSectionAssetIndex(int32 SectionKey)
@@ -3185,9 +3204,16 @@ int32 AppendMaxisMeshObject(
 		// texture, so left alone it falls into the opaque INDEX_NONE section and draws as a solid
 		// plate - which is what made a windmill a flat teal disc with the tower hidden behind it.
 		const bool bTranslucentDiscFace = !bTexturedFace && FMaxisProceduralMeshBuilder::IsTranslucentFaceType(Face.FaceType);
+		// Face types 2 and 13 are the direct SIM3D images. Palette index 0 is transparency, so they
+		// get their own section: an atlas cell can share the same texture number and must stay opaque.
+		const bool bRuntimeMaskedDirectImage = bRuntimeTexturedFace && (Face.FaceType == 2 || Face.FaceType == 13);
 		const int32 SectionKey = bBakedAtlasTexturedFace
 			? MakeBakedAtlasPageSectionKey(Face.TextureAtlasIndex)
-			: (bBakedDirectTexturedFace ? MakeBakedDirectImageSectionKey(Face.MaterialIndex) : (bRuntimeTexturedFace ? TextureKey : (bTranslucentDiscFace ? TranslucentDiscSectionKeyFlag : INDEX_NONE)));
+			: (bBakedDirectTexturedFace
+				? MakeBakedDirectImageSectionKey(Face.MaterialIndex)
+				: (bRuntimeMaskedDirectImage
+					? (RuntimeMaskedDirectImageSectionKeyFlag | TextureKey)
+					: (bRuntimeTexturedFace ? TextureKey : (bTranslucentDiscFace ? TranslucentDiscSectionKeyFlag : INDEX_NONE))));
 		FOriginalMeshSectionData& Section = Sections.FindOrAdd(SectionKey);
 		const int32 FaceVertexStart = Section.Vertices.Num();
 		const FLinearColor FaceColor = bTexturedFace
@@ -4105,6 +4131,38 @@ void ASimCity2000CityActor::RebuildCity()
 	// One material per section key, shared by every model that uses it, so a texture is not
 	// re-instanced per building.
 	TMap<int32, UMaterialInterface*> BuildingSectionMaterials;
+	// Direct SIM3D images (trees, signs) use the masked lit card material so palette index 0,
+	// the original's transparency key, is not drawn. Atlas cells stay on the opaque texture
+	// material. If the masked parent failed to load, the opaque one still shows the picture.
+	// Loaded here, not stored on the actor. A new UPROPERTY would change the saved CityRender
+	// layout, and the cooked map then dies on load with a bad export index.
+	UMaterialInterface* LitSpriteCardMaterial = LoadObject<UMaterialInterface>(
+		nullptr, TEXT("/Game/Materials/M_SimCopterLitSpriteTexture.M_SimCopterLitSpriteTexture"));
+	auto MakeRuntimeTextureMaterial = [&](int32 SectionKey) -> UMaterialInterface*
+	{
+		const bool bMaskedDirectImage = IsRuntimeMaskedDirectImageSectionKey(SectionKey);
+		UMaterialInterface* Parent = bMaskedDirectImage ? LitSpriteCardMaterial : TexturedMaterial.Get();
+		if (Parent == nullptr)
+		{
+			Parent = TexturedMaterial;
+		}
+		if (Parent == nullptr)
+		{
+			return nullptr;
+		}
+
+		const int32 TextureLookup = bMaskedDirectImage ? RuntimeMaskedDirectImageTextureKey(SectionKey) : SectionKey;
+		if (UTexture2D* const* Texture = OriginalTexturesByKey.Find(TextureLookup))
+		{
+			if (UMaterialInstanceDynamic* TextureMaterial = UMaterialInstanceDynamic::Create(Parent, this))
+			{
+				TextureMaterial->SetTextureParameterValue(TEXT("Texture"), *Texture);
+				OriginalTextureMaterials.Add(TextureMaterial);
+				return TextureMaterial;
+			}
+		}
+		return nullptr;
+	};
 	auto ResolveBuildingSectionMaterial = [&](int32 SectionKey) -> UMaterialInterface*
 	{
 		if (UMaterialInterface** Cached = BuildingSectionMaterials.Find(SectionKey))
@@ -4135,17 +4193,9 @@ void ASimCity2000CityActor::RebuildCity()
 				Resolved = *Baked;
 			}
 		}
-		else if (TexturedMaterial != nullptr)
+		else
 		{
-			if (UTexture2D* const* Texture = OriginalTexturesByKey.Find(SectionKey))
-			{
-				if (UMaterialInstanceDynamic* TextureMaterial = UMaterialInstanceDynamic::Create(TexturedMaterial, this))
-				{
-					TextureMaterial->SetTextureParameterValue(TEXT("Texture"), *Texture);
-					OriginalTextureMaterials.Add(TextureMaterial);
-					Resolved = TextureMaterial;
-				}
-			}
+			Resolved = MakeRuntimeTextureMaterial(SectionKey);
 		}
 
 		BuildingSectionMaterials.Add(SectionKey, Resolved);
@@ -5479,7 +5529,6 @@ void ASimCity2000CityActor::RebuildCity()
 		}
 
 		UMaterialInterface* SectionMaterial = nullptr;
-		UTexture2D* RuntimeTexture = nullptr;
 		if (IsTranslucentDiscSectionKey(TextureKey))
 		{
 			SectionMaterial = BlurDiscMaterial;
@@ -5500,13 +5549,10 @@ void ASimCity2000CityActor::RebuildCity()
 		}
 		else
 		{
-			if (UTexture2D* const* Texture = OriginalTexturesByKey.Find(TextureKey))
-			{
-				RuntimeTexture = *Texture;
-			}
+			SectionMaterial = MakeRuntimeTextureMaterial(TextureKey);
 		}
 
-		if (SectionMaterial == nullptr && (RuntimeTexture == nullptr || TexturedMaterial == nullptr))
+		if (SectionMaterial == nullptr)
 		{
 			continue;
 		}
@@ -5516,21 +5562,7 @@ void ASimCity2000CityActor::RebuildCity()
 			MeshSectionIndex,
 			*TextureSection,
 			bEnableOriginalMeshCollision);
-
-		if (SectionMaterial != nullptr)
-		{
-			OriginalMeshComponent->SetMaterial(MeshSectionIndex, SectionMaterial);
-		}
-		else
-		{
-			UMaterialInstanceDynamic* TextureMaterial = UMaterialInstanceDynamic::Create(TexturedMaterial, this);
-			if (TextureMaterial != nullptr)
-			{
-				TextureMaterial->SetTextureParameterValue(TEXT("Texture"), RuntimeTexture);
-				OriginalTextureMaterials.Add(TextureMaterial);
-				OriginalMeshComponent->SetMaterial(MeshSectionIndex, TextureMaterial);
-			}
-		}
+		OriginalMeshComponent->SetMaterial(MeshSectionIndex, SectionMaterial);
 
 		++MeshSectionIndex;
 	}
