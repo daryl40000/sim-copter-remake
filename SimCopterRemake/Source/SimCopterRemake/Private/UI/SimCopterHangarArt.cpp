@@ -5,6 +5,7 @@
 #include "Engine/Texture2D.h"
 #include "Flight/SimCopterHelicopterRegistry.h"
 #include "Formats/MaxisWindowsBitmapReader.h"
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Ground/SimCopterPopulationSprite.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformFileManager.h"
@@ -133,7 +134,8 @@ void USimCopterHangarArt::SetOriginalGameRoot(const FString& InOriginalGameRoot)
 
 bool USimCopterHangarArt::IsUsable() const
 {
-	return !OriginalGameRoot.IsEmpty() && FPaths::DirectoryExists(FPaths::Combine(OriginalGameRoot, TEXT("BMP")));
+	return !OriginalGameRoot.IsEmpty()
+		&& !SimCopterOriginalGame::ResolveExistingPath(OriginalGameRoot, TEXT("BMP")).IsEmpty();
 }
 
 FString USimCopterHangarArt::ResolveBitmapPath(const FString& FileName) const

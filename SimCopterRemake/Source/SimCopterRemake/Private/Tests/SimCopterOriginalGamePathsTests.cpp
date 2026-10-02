@@ -163,4 +163,32 @@ bool FSimCopterOriginalGamePathsResolveTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FSimCopterOriginalGamePathsCaseTest,
+	"SimCopter.OriginalGamePaths.Case",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FSimCopterOriginalGamePathsCaseTest::RunTest(const FString& Parameters)
+{
+	// A Linux copy of the install is often entirely lower case. Readers still spell the CD's
+	// BMP/ and GEO/, so the lookup has to find the file that is actually on disk.
+	const FString Root = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SimCopterCaseTest"));
+	IFileManager::Get().DeleteDirectory(*Root, false, true);
+	const FString BmpDir = FPaths::Combine(Root, TEXT("bmp"));
+	TestTrue(TEXT("temp bmp dir"), IFileManager::Get().MakeDirectory(*BmpDir, true));
+	const FString Texture = FPaths::Combine(BmpDir, TEXT("sim3d.bmp"));
+	TestTrue(TEXT("temp texture"), FFileHelper::SaveStringToFile(FString(TEXT("x")), *Texture));
+
+	const FString Found = SimCopterOriginalGame::ResolveExistingPath(Root, TEXT("BMP/SIM3D.BMP"));
+	TestFalse(TEXT("upper-case request finds the lower-case file"), Found.IsEmpty());
+	TestTrue(TEXT("the found file exists"), IFileManager::Get().FileExists(*Found));
+	TestEqual(TEXT("the found name is the one on disk"), FPaths::GetCleanFilename(Found), FString(TEXT("sim3d.bmp")));
+
+	TestTrue(TEXT("a missing file stays missing"),
+		SimCopterOriginalGame::ResolveExistingPath(Root, TEXT("BMP/NOPE.BMP")).IsEmpty());
+
+	IFileManager::Get().DeleteDirectory(*Root, false, true);
+	return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

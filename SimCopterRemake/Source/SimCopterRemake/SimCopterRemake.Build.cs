@@ -32,12 +32,19 @@ public class SimCopterRemake : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore", "UMG", "RenderCore", "RHI", "ApplicationCore", "MediaAssets", "AudioMixer", "MoviePlayer", "DaySequence", "CelestialVault", "Json", "JsonUtilities" });
 
 		// The Graphics page replaces the original's render.bmp options with Unreal's, so it drives
-		// NVIDIA's blueprint libraries directly rather than poking console variables. All three
-		// plugins are already required by the .uproject; they publish WITH_DLSS / WITH_STREAMLINE
-		// as 0 off Windows, so the call sites stay guarded and this stays Windows-only.
+		// NVIDIA's blueprint libraries directly rather than poking console variables. The .uproject
+		// marks DLSS / Streamline optional and Win64-only: a Linux engine does not ship them.
+		// Those plugins are what define WITH_DLSS / WITH_STREAMLINE. Clang builds with -Wundef, so
+		// an absent macro is an error, not a skipped branch. Define them as 0 when the modules are
+		// not linked. The Windows build still links the plugins when they are installed.
 		if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows))
 		{
 			PrivateDependencyModuleNames.AddRange(new string[] { "DLSSBlueprint", "StreamlineDLSSGBlueprint", "StreamlineReflexBlueprint" });
+		}
+		else
+		{
+			PrivateDefinitions.Add("WITH_DLSS=0");
+			PrivateDefinitions.Add("WITH_STREAMLINE=0");
 		}
 
 		// A packaged game reads the original data as loose files beside the executable. UAT cannot

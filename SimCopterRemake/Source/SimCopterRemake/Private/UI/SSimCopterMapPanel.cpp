@@ -147,11 +147,8 @@ ASimCopterMissionSystemActor* SSimCopterMapPanel::GetMissionSystem() const
 	{
 		return nullptr;
 	}
-	for (TActorIterator<ASimCopterMissionSystemActor> It(Helicopter->GetWorld()); It; ++It)
-	{
-		return *It;
-	}
-	return nullptr;
+	TActorIterator<ASimCopterMissionSystemActor> It(Helicopter->GetWorld());
+	return It ? *It : nullptr;
 }
 
 ASimCopterTrafficSystemActor* SSimCopterMapPanel::GetTrafficSystem() const
@@ -161,11 +158,8 @@ ASimCopterTrafficSystemActor* SSimCopterMapPanel::GetTrafficSystem() const
 	{
 		return nullptr;
 	}
-	for (TActorIterator<ASimCopterTrafficSystemActor> It(Helicopter->GetWorld()); It; ++It)
-	{
-		return *It;
-	}
-	return nullptr;
+	TActorIterator<ASimCopterTrafficSystemActor> It(Helicopter->GetWorld());
+	return It ? *It : nullptr;
 }
 
 void SSimCopterMapPanel::LoadArt()

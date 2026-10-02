@@ -112,15 +112,81 @@ FString ResolveRoot()
 	return ResolveRootBy([](const FString& Root) { return IsOriginalGameRoot(Root); });
 }
 
+namespace
+{
+// One child of Directory whose name matches WantedName, ignoring case. The exact spelling is
+// tried first so a case-sensitive disk still prefers the name the caller wrote.
+FString MatchChildIgnoreCase(const FString& Directory, const FString& WantedName)
+{
+	if (Directory.IsEmpty() || WantedName.IsEmpty() || !IFileManager::Get().DirectoryExists(*Directory))
+	{
+		return FString();
+	}
+
+	const FString Exact = FPaths::Combine(Directory, WantedName);
+	if (IFileManager::Get().FileExists(*Exact) || IFileManager::Get().DirectoryExists(*Exact))
+	{
+		return Exact;
+	}
+
+	FString Found;
+	IFileManager::Get().IterateDirectory(*Directory, [&WantedName, &Found](const TCHAR* FilenameOrDirectory, bool)
+	{
+		if (FPaths::GetCleanFilename(FilenameOrDirectory).Equals(WantedName, ESearchCase::IgnoreCase))
+		{
+			Found = FilenameOrDirectory;
+			return false;
+		}
+		return true;
+	});
+	return Found;
+}
+}
+
+FString ResolveExistingPath(const FString& Root, const FString& RelativePath)
+{
+	if (Root.IsEmpty() || !IFileManager::Get().DirectoryExists(*Root))
+	{
+		return FString();
+	}
+
+	FString Normalized = RelativePath;
+	Normalized.ReplaceInline(TEXT("\\"), TEXT("/"));
+	TArray<FString> Segments;
+	Normalized.ParseIntoArray(Segments, TEXT("/"), true);
+	if (Segments.Num() == 0)
+	{
+		return FString();
+	}
+
+	FString Current = Root;
+	for (int32 Index = 0; Index < Segments.Num(); ++Index)
+	{
+		Current = MatchChildIgnoreCase(Current, Segments[Index]);
+		if (Current.IsEmpty())
+		{
+			return FString();
+		}
+		const bool bLast = Index == Segments.Num() - 1;
+		if (!bLast && !IFileManager::Get().DirectoryExists(*Current))
+		{
+			return FString();
+		}
+	}
+
+	FPaths::NormalizeFilename(Current);
+	return Current;
+}
+
 FString ResolveDirectory(const TCHAR* RelativePath)
 {
 	FString Resolved;
 	ResolveRootBy([RelativePath, &Resolved](const FString& Root)
 	{
-		FString Candidate = FPaths::Combine(Root, RelativePath);
-		FPaths::NormalizeDirectoryName(Candidate);
-		if (IFileManager::Get().DirectoryExists(*Candidate))
+		FString Candidate = ResolveExistingPath(Root, RelativePath);
+		if (!Candidate.IsEmpty() && IFileManager::Get().DirectoryExists(*Candidate))
 		{
+			FPaths::NormalizeDirectoryName(Candidate);
 			Resolved = MoveTemp(Candidate);
 			return true;
 		}
@@ -134,9 +200,8 @@ FString ResolveFile(const TCHAR* RelativePath)
 	FString Resolved;
 	ResolveRootBy([RelativePath, &Resolved](const FString& Root)
 	{
-		FString Candidate = FPaths::Combine(Root, RelativePath);
-		FPaths::NormalizeFilename(Candidate);
-		if (IFileManager::Get().FileExists(*Candidate))
+		FString Candidate = ResolveExistingPath(Root, RelativePath);
+		if (!Candidate.IsEmpty() && IFileManager::Get().FileExists(*Candidate))
 		{
 			Resolved = MoveTemp(Candidate);
 			return true;

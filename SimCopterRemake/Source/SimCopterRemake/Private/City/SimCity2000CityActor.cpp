@@ -3630,7 +3630,7 @@ void ASimCity2000CityActor::RebuildCity()
 			if (SharedColorMap != nullptr)
 			{
 				FString TextureError;
-				const FString TexturePath = FPaths::Combine(ResolvedOriginalGameRoot, TEXT("BMP/SIM3D.BMP"));
+				const FString TexturePath = SimCopterOriginalGame::ResolveExistingPath(ResolvedOriginalGameRoot, TEXT("BMP/SIM3D.BMP"));
 				const bool bRuntimeOriginalTexturesLoaded = FMaxisTextureReader::LoadCompositeBitmapFromFile(TexturePath, *SharedColorMap, OriginalTextures, TextureError);
 				if (bRuntimeOriginalTexturesLoaded)
 				{
@@ -3672,7 +3672,7 @@ void ASimCity2000CityActor::RebuildCity()
 
 					FMaxisCompositeBitmap SkyTextures;
 					FString SkyTextureError;
-					const FString SkyTexturePath = FPaths::Combine(ResolvedOriginalGameRoot, TEXT("BMP/SKY.BMP"));
+					const FString SkyTexturePath = SimCopterOriginalGame::ResolveExistingPath(ResolvedOriginalGameRoot, TEXT("BMP/SKY.BMP"));
 					if (bNeedRuntimeMeshTextures &&
 						!BakedCityAtlasMaterials.PageMaterials.Contains(SimCopterSkyGroundTextureFile) &&
 						FMaxisTextureReader::LoadCompositeBitmapFromFile(SkyTexturePath, *SharedColorMap, SkyTextures, SkyTextureError))
@@ -3696,7 +3696,7 @@ void ASimCity2000CityActor::RebuildCity()
 
 					FMaxisCompositeBitmap TerrainTextures;
 					FString TerrainTextureError;
-					const FString TerrainTexturePath = FPaths::Combine(ResolvedOriginalGameRoot, TEXT("BMP/TILED1.BMP"));
+					const FString TerrainTexturePath = SimCopterOriginalGame::ResolveExistingPath(ResolvedOriginalGameRoot, TEXT("BMP/TILED1.BMP"));
 					if (bNeedRuntimeTerrainTextures && BakedCityAtlasMaterials.TerrainLowMaterial == nullptr &&
 						FMaxisTextureReader::LoadCompositeBitmapFromFile(TerrainTexturePath, *SharedColorMap, TerrainTextures, TerrainTextureError))
 					{
@@ -4269,7 +4269,7 @@ void ASimCity2000CityActor::RebuildCity()
 		{
 			FString TreeTextureError;
 			FMaxisTextureReader::LoadCompositeBitmapFromFile(
-				FPaths::Combine(ResolveOriginalGameRoot(), TEXT("BMP/SIM3D.BMP")), *Palette, OriginalTextures, TreeTextureError);
+				SimCopterOriginalGame::ResolveExistingPath(ResolveOriginalGameRoot(), TEXT("BMP/SIM3D.BMP")), *Palette, OriginalTextures, TreeTextureError);
 		}
 	}
 	struct FTreeModel

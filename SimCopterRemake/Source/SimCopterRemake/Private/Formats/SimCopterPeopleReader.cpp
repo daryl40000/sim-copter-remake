@@ -3,6 +3,7 @@
 #include "Formats/SimCopterPeopleReader.h"
 
 #include "Formats/SimCopterDougContainerInternal.h"
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
@@ -54,16 +55,7 @@ int16 FPeopleBehaviorModel::GetStateLoopFlag(int32 StateIndex)
 
 FString FSimCopterPeopleReader::ResolvePeoplePath(const FString& OriginalGameRoot)
 {
-	const TCHAR* Candidates[] = {TEXT("X/people.df"), TEXT("X/People.df"), TEXT("X/PEOPLE.DF")};
-	for (const TCHAR* Candidate : Candidates)
-	{
-		const FString Path = FPaths::Combine(OriginalGameRoot, Candidate);
-		if (FPaths::FileExists(Path))
-		{
-			return Path;
-		}
-	}
-	return FString();
+	return SimCopterOriginalGame::ResolveExistingPath(OriginalGameRoot, TEXT("X/people.df"));
 }
 
 bool FSimCopterPeopleReader::LoadFromFile(const FString& FilePath, FPeopleBehaviorModel& OutModel, FString& OutError)

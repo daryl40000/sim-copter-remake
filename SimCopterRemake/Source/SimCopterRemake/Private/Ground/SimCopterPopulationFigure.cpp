@@ -4,6 +4,7 @@
 #include "Ground/SimCopterFigureAdjustments.h"
 
 #include "Formats/MaxisMeshReader.h"
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Misc/Paths.h"
 #include "ProceduralMeshComponent.h"
 
@@ -321,8 +322,8 @@ TSharedPtr<FSimCopterPrivAnimShared> FSimCopterPopulationFigure::GetShared(const
 	const TCHAR* GeoNames[] = {TEXT("sim3d1.max"), TEXT("SIM3D1.MAX"), TEXT("SIM3D2.MAX"), TEXT("SIM3D3.MAX")};
 	for (const TCHAR* GeoName : GeoNames)
 	{
-		const FString GeoPath = FPaths::Combine(OriginalGameRoot, TEXT("GEO"), GeoName);
-		if (!FPaths::FileExists(GeoPath))
+		const FString GeoPath = SimCopterOriginalGame::ResolveExistingPath(OriginalGameRoot, FString(TEXT("GEO/")) + GeoName);
+		if (GeoPath.IsEmpty())
 		{
 			continue;
 		}
@@ -342,14 +343,9 @@ TSharedPtr<FSimCopterPrivAnimShared> FSimCopterPopulationFigure::GetShared(const
 	}
 
 	// Head sprites come from SIM3D.BMP (optional: figures degrade to colored-cube heads).
-	const TCHAR* BitmapNames[] = {TEXT("BMP/SIM3D.BMP"), TEXT("BMP/sim3d.bmp")};
-	for (const TCHAR* BitmapName : BitmapNames)
+	const FString BitmapPath = SimCopterOriginalGame::ResolveExistingPath(OriginalGameRoot, TEXT("BMP/SIM3D.BMP"));
+	if (!BitmapPath.IsEmpty())
 	{
-		const FString BitmapPath = FPaths::Combine(OriginalGameRoot, BitmapName);
-		if (!FPaths::FileExists(BitmapPath))
-		{
-			continue;
-		}
 		FMaxisCompositeBitmap Bitmap;
 		FString BitmapError;
 		if (FMaxisTextureReader::LoadCompositeBitmapFromFile(BitmapPath, Shared->Palette, Bitmap, BitmapError, true))
@@ -362,7 +358,6 @@ TSharedPtr<FSimCopterPrivAnimShared> FSimCopterPopulationFigure::GetShared(const
 				}
 			}
 		}
-		break;
 	}
 
 	Cache.Add(Key, Shared);

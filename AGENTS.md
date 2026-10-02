@@ -39,6 +39,11 @@ The script ends in `pause`, so feed it empty stdin or it hangs. PowerShell 5.1 r
 which is why the redirect lives inside the `cmd /c` string. A clean build is ~60 s and ends with
 `Result: Succeeded`. Engine: `C:\GameDev\UE_5.8`. Details in `Docs/memory/build-and-run.md`.
 
+On Linux the wrapper is `RebuildUnrealCpp.sh` at the repo root. It targets
+`SimCopterRemakeEditor Linux Development` and still passes `-NoLiveCoding`. Set `UE_ROOT` to
+the Linux Unreal 5.8 install if the script cannot find it. DLSS, Streamline and Reflex stay
+optional and Win64-only; a Linux configure must succeed without those plugins installed.
+
 **In a workspace-write agent sandbox, run the wrapper with `sandbox_permissions:
 "require_escalated"` on the FIRST build invocation.** Use the normal tool approval mechanism;
 do not run a sandboxed build first just to discover the same permission failure. UE 5.8's

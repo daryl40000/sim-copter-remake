@@ -5,6 +5,7 @@
 #include "Engine/Texture2D.h"
 #include "Formats/MaxisTextureReader.h"
 #include "Formats/MaxisWindowsBitmapReader.h"
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Misc/Paths.h"
 #include "ProceduralMeshComponent.h"
 
@@ -88,7 +89,7 @@ FString FSimCopterPopulationSprite::ResolvePeople1BitmapPath(const FString& Orig
 		? FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TrimmedRoot))
 		: FPaths::ConvertRelativePathToFull(TrimmedRoot);
 
-	return FPaths::Combine(FullRoot, TEXT("BMP"), TEXT("PEOPLE1.BMP"));
+	return SimCopterOriginalGame::ResolveExistingPath(FullRoot, TEXT("BMP/PEOPLE1.BMP"));
 }
 
 bool FSimCopterPopulationSprite::LoadPeople1Texture(

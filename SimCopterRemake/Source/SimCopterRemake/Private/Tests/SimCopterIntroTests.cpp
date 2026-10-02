@@ -13,7 +13,7 @@ bool FSimCopterIntroInputTest::RunTest(const FString& Parameters)
 	const TSharedRef<SSimCopterIntro> Widget = SNew(SSimCopterIntro).MovieBrush(&Brush)
 		.OnSkip(FSimpleDelegate::CreateLambda([&Skips]() { ++Skips; }));
 	const FGeometry Geometry;
-	for (const FKey Key : {EKeys::A, EKeys::Escape, EKeys::Enter, EKeys::Gamepad_FaceButton_Bottom,
+	for (const FKey& Key : {EKeys::A, EKeys::Escape, EKeys::Enter, EKeys::Gamepad_FaceButton_Bottom,
 		EKeys::Gamepad_Special_Right, EKeys::LeftShift})
 	{
 		const int32 Before = Skips;
@@ -23,7 +23,7 @@ bool FSimCopterIntroInputTest::RunTest(const FString& Parameters)
 		Widget->OnKeyUp(Geometry, FKeyEvent(Key, FModifierKeysState(), 0, false, 0, 0));
 		TestEqual(TEXT("A held button skips only once"), Skips, Before + 1);
 	}
-	for (const FKey Button : {EKeys::LeftMouseButton, EKeys::RightMouseButton, EKeys::MiddleMouseButton,
+	for (const FKey& Button : {EKeys::LeftMouseButton, EKeys::RightMouseButton, EKeys::MiddleMouseButton,
 		EKeys::ThumbMouseButton, EKeys::ThumbMouseButton2})
 	{
 		const int32 Before = Skips;

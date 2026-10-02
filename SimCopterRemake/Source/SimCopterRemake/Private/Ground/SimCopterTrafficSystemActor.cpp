@@ -5023,7 +5023,10 @@ ASimCopterMissionSystemActor* ASimCopterTrafficSystemActor::ResolveMissionSystem
 {
 	if (UWorld* World = GetWorld())
 	{
-		for (TActorIterator<ASimCopterMissionSystemActor> It(World); It; ++It)
+		// The first mission actor is the session's only one. A for-loop whose body always
+		// returns makes Clang's -Wunreachable-code-loop-increment fail the Linux build.
+		TActorIterator<ASimCopterMissionSystemActor> It(World);
+		if (It)
 		{
 			return *It;
 		}

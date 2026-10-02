@@ -1,6 +1,7 @@
 #include "Audio/SimCopterRadio.h"
 
 #include "Audio/SimCopterAudioSubsystem.h"
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "HAL/FileManager.h"
@@ -95,8 +96,8 @@ void USimCopterRadioSubsystem::Deinitialize()
 
 void USimCopterRadioSubsystem::ScanStations(const FString& SoundRoot)
 {
-	const FString RadioRoot = FPaths::Combine(SoundRoot, TEXT("radio"));
-	const FString StationsRoot = FPaths::Combine(RadioRoot, TEXT("stations"));
+	const FString RadioRoot = SimCopterOriginalGame::ResolveExistingPath(SoundRoot, TEXT("radio"));
+	const FString StationsRoot = SimCopterOriginalGame::ResolveExistingPath(RadioRoot, TEXT("stations"));
 	if (!FPaths::DirectoryExists(StationsRoot))
 	{
 		return;
@@ -104,12 +105,15 @@ void USimCopterRadioSubsystem::ScanStations(const FString& SoundRoot)
 
 	// commercl\<lang>\*.wav - shared by every station, which is why it lives above stations\.
 	IFileManager& Files = IFileManager::Get();
-	const FString CommercialDir = FPaths::Combine(RadioRoot, TEXT("commercl"), GLanguageDir);
-	TArray<FString> Found;
-	Files.FindFiles(Found, *FPaths::Combine(CommercialDir, TEXT("*.wav")), true, false);
-	for (const FString& File : Found)
+	const FString CommercialDir = SimCopterOriginalGame::ResolveExistingPath(RadioRoot, FString(TEXT("commercl/")) + GLanguageDir);
+	if (!CommercialDir.IsEmpty())
 	{
-		Commercials.Add(FPaths::Combine(CommercialDir, File));
+		TArray<FString> Found;
+		Files.FindFiles(Found, *FPaths::Combine(CommercialDir, TEXT("*.wav")), true, false);
+		for (const FString& File : Found)
+		{
+			Commercials.Add(FPaths::Combine(CommercialDir, File));
+		}
 	}
 
 	TArray<FString> StationDirs;
@@ -141,7 +145,11 @@ void USimCopterRadioSubsystem::ScanStations(const FString& SoundRoot)
 			}
 		};
 		Glob(FPaths::Combine(Dir, TEXT("music")), Station.Music);
-		Glob(FPaths::Combine(Dir, TEXT("dj"), GLanguageDir), Station.Dj);
+		const FString DjDir = SimCopterOriginalGame::ResolveExistingPath(Dir, FString(TEXT("dj/")) + GLanguageDir);
+		if (!DjDir.IsEmpty())
+		{
+			Glob(DjDir, Station.Dj);
+		}
 		Glob(FPaths::Combine(Dir, TEXT("jingle")), Station.Jingle);
 
 		if (Station.HasContent())

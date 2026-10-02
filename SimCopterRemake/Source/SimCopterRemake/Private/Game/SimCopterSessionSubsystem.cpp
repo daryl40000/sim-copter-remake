@@ -44,7 +44,9 @@ FString USimCopterSessionSubsystem::ResolveCareerCityFilePath(int32 CareerCityIn
 		return FString();
 	}
 
-	return FPaths::Combine(CitiesDir, TEXT("career"), FString::Printf(TEXT("city%d.sc2"), FMath::Clamp(CareerCityIndex, 0, 29)));
+	return SimCopterOriginalGame::ResolveExistingPath(
+		CitiesDir,
+		FString::Printf(TEXT("career/city%d.sc2"), FMath::Clamp(CareerCityIndex, 0, 29)));
 }
 
 void USimCopterSessionSubsystem::GetUserCityFilePaths(TArray<FString>& OutPaths)

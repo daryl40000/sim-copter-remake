@@ -3854,7 +3854,8 @@ void ASimCopterMissionSystemActor::BuildMissionWorldMarkers(TArray<FSimCopterMis
 	// name for it (string 586).
 	if (const UWorld* World = GetWorld())
 	{
-		for (TActorIterator<ASimCopterHangar> It(const_cast<UWorld*>(World)); It; ++It)
+		TActorIterator<ASimCopterHangar> It(const_cast<UWorld*>(World));
+		if (It)
 		{
 			FSimCopterMissionWorldMarkerEntry HangarMarker;
 			HangarMarker.WorldLocation = It->GetTagWorldLocation();
@@ -3862,7 +3863,6 @@ void ASimCopterMissionSystemActor::BuildMissionWorldMarkers(TArray<FSimCopterMis
 			HangarMarker.Detail = ASimCopterHangar::GetTagDetail();
 			HangarMarker.Color = FLinearColor(0.16f, 0.52f, 0.72f, 1.0f);
 			OutMarkers.Add(HangarMarker);
-			break;
 		}
 	}
 

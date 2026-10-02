@@ -51,6 +51,12 @@ namespace SimCopterOriginalGame
 	// `<root>/RelativePath` for the first root where that file exists, or empty.
 	SIMCOPTERREMAKE_API FString ResolveFile(const TCHAR* RelativePath);
 
+	// The path as it actually exists under Root. Each folder and the final name are matched
+	// without caring about letter case: the 1996 CD spells BMP/ and GEO/, and a copy onto Linux
+	// often comes out entirely lower case. Exact matches win, so Windows installs are untouched.
+	// Empty when any segment is missing.
+	SIMCOPTERREMAKE_API FString ResolveExistingPath(const FString& Root, const FString& RelativePath);
+
 	// Creates GetPlayerRootDir() and writes PlaceholderFileName into it when bundled/runtime data
 	// has not been found. This is a recovery hint for custom or damaged packages, not the normal
 	// distribution path. Safe to call repeatedly and inert once a real data root resolves.

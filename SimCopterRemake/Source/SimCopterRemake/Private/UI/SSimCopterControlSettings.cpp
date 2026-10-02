@@ -132,11 +132,11 @@ void SSimCopterControlSettings::WriteBindings(const TArray<FSimCopterBinding>& B
 
 	// Clearing and refilling is the only way to reorder or replace wholesale; the mapping structs
 	// are matched by value, so an edited key can no longer find its old entry.
-	for (const FInputActionKeyMapping Mapping : TArray<FInputActionKeyMapping>(Settings->GetActionMappings()))
+	for (const FInputActionKeyMapping& Mapping : TArray<FInputActionKeyMapping>(Settings->GetActionMappings()))
 	{
 		Settings->RemoveActionMapping(Mapping, /*bForceRebuildKeymaps=*/false);
 	}
-	for (const FInputAxisKeyMapping Mapping : TArray<FInputAxisKeyMapping>(Settings->GetAxisMappings()))
+	for (const FInputAxisKeyMapping& Mapping : TArray<FInputAxisKeyMapping>(Settings->GetAxisMappings()))
 	{
 		Settings->RemoveAxisMapping(Mapping, /*bForceRebuildKeymaps=*/false);
 	}

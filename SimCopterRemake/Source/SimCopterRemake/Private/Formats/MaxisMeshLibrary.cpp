@@ -2,6 +2,7 @@
 
 #include "Formats/MaxisMeshLibrary.h"
 
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Misc/Paths.h"
 
 namespace
@@ -345,17 +346,22 @@ bool FMaxisMeshLibrary::LoadFromOriginalGameRoot(const FString& OriginalGameRoot
 
 	const FString ResolvedRoot = FPaths::ConvertRelativePathToFull(
 		FPaths::IsRelative(TrimmedRoot) ? FPaths::Combine(FPaths::ProjectDir(), TrimmedRoot) : TrimmedRoot);
-	const FString GeoPath = FPaths::Combine(ResolvedRoot, TEXT("GEO"));
-	if (!FPaths::DirectoryExists(GeoPath))
+	const FString GeoPath = SimCopterOriginalGame::ResolveExistingPath(ResolvedRoot, TEXT("GEO"));
+	if (GeoPath.IsEmpty() || !FPaths::DirectoryExists(GeoPath))
 	{
-		OutError = FString::Printf(TEXT("Original game GEO folder was not found at '%s'."), *GeoPath);
+		OutError = FString::Printf(TEXT("Original game GEO folder was not found at '%s'."), *FPaths::Combine(ResolvedRoot, TEXT("GEO")));
 		return false;
 	}
 
 	MeshFiles.Reserve(UE_ARRAY_COUNT(ExpectedMeshPacks));
 	for (const TCHAR* PackName : ExpectedMeshPacks)
 	{
-		const FString PackPath = FPaths::Combine(GeoPath, PackName);
+		const FString PackPath = SimCopterOriginalGame::ResolveExistingPath(GeoPath, PackName);
+		if (PackPath.IsEmpty())
+		{
+			OutError = FString::Printf(TEXT("Original game mesh pack '%s' was not found in '%s'."), PackName, *GeoPath);
+			return false;
+		}
 		FMaxisMeshFile MeshFile;
 		if (!FMaxisMeshReader::LoadMeshFileFromFile(PackPath, MeshFile, OutError))
 		{

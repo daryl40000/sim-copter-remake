@@ -282,30 +282,37 @@ FString USimCopterAudioSubsystem::ResolveWavPath(const FString& WavName, SimCopt
 	// language folder although the retail install ships help1.wav in sound\, and the people
 	// clips are named by FUN_004c5210 with no directory at all.
 	TArray<FString, TInlineAllocator<3>> Dirs;
+	const FString LanguageFolder = SimCopterOriginalGame::ResolveExistingPath(SoundRoot, LanguageDir);
 	if (Dir == SimCopterSound::ESoundDir::Language)
 	{
-		Dirs.Add(FPaths::Combine(SoundRoot, LanguageDir));
+		if (!LanguageFolder.IsEmpty())
+		{
+			Dirs.Add(LanguageFolder);
+		}
 		Dirs.Add(SoundRoot);
 	}
 	else
 	{
 		Dirs.Add(SoundRoot);
-		Dirs.Add(FPaths::Combine(SoundRoot, LanguageDir));
+		if (!LanguageFolder.IsEmpty())
+		{
+			Dirs.Add(LanguageFolder);
+		}
 	}
-	Dirs.Add(FPaths::Combine(SoundRoot, TEXT("people")));
+	const FString PeopleFolder = SimCopterOriginalGame::ResolveExistingPath(SoundRoot, TEXT("people"));
+	if (!PeopleFolder.IsEmpty())
+	{
+		Dirs.Add(PeopleFolder);
+	}
 
-	// The install mixes .WAV and .wav, and NTFS is case-insensitive, but a packaged build on a
-	// case-sensitive mount is not - try both.
-	static const TCHAR* Extensions[] = { TEXT(".WAV"), TEXT(".wav") };
+	// Filenames in the sound table are upper case (COPLOOP) and the disc copy is often
+	// entirely lower case. ResolveExistingPath matches the file without caring about case.
 	for (const FString& Folder : Dirs)
 	{
-		for (const TCHAR* Extension : Extensions)
+		const FString Path = SimCopterOriginalGame::ResolveExistingPath(Folder, Base + TEXT(".wav"));
+		if (!Path.IsEmpty())
 		{
-			const FString Path = FPaths::Combine(Folder, Base + Extension);
-			if (FPaths::FileExists(Path))
-			{
-				return Path;
-			}
+			return Path;
 		}
 	}
 	return FString();

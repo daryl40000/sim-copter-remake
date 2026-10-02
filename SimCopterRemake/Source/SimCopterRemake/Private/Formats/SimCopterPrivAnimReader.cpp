@@ -2,6 +2,7 @@
 
 #include "Formats/SimCopterPrivAnimReader.h"
 
+#include "Formats/SimCopterOriginalGamePaths.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
@@ -35,16 +36,7 @@ const FPrivAnimClip* FPrivAnimModel::FindClip(const FPrivAnimFigure& Figure, con
 
 FString FSimCopterPrivAnimReader::ResolvePrivAnimPath(const FString& OriginalGameRoot)
 {
-	const TCHAR* Candidates[] = {TEXT("X/privanim.df"), TEXT("X/PrivAnim.df"), TEXT("X/PRIVANIM.DF")};
-	for (const TCHAR* Candidate : Candidates)
-	{
-		const FString Path = FPaths::Combine(OriginalGameRoot, Candidate);
-		if (FPaths::FileExists(Path))
-		{
-			return Path;
-		}
-	}
-	return FString();
+	return SimCopterOriginalGame::ResolveExistingPath(OriginalGameRoot, TEXT("X/privanim.df"));
 }
 
 bool FSimCopterPrivAnimReader::LoadFromFile(const FString& FilePath, FPrivAnimModel& OutModel, FString& OutError)

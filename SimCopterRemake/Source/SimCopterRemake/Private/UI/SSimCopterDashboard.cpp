@@ -941,11 +941,8 @@ ASimCopterMissionSystemActor* SSimCopterDashboard::GetMissionSystem() const
 	{
 		return nullptr;
 	}
-	for (TActorIterator<ASimCopterMissionSystemActor> It(Helicopter->GetWorld()); It; ++It)
-	{
-		return *It;
-	}
-	return nullptr;
+	TActorIterator<ASimCopterMissionSystemActor> It(Helicopter->GetWorld());
+	return It ? *It : nullptr;
 }
 
 const FSlateBrush* SSimCopterDashboard::GetBrush(

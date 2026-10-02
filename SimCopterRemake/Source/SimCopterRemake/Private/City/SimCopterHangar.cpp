@@ -535,7 +535,8 @@ UMaterialInterface* ASimCopterHangar::ResolveCellMaterial(const int32 AtlasCell)
 	// own CMAP - the same pairing the city builder uses (sim3d1.max + BMP/SIM3D.BMP).
 	FMaxisMeshFile MeshFile;
 	FString Error;
-	if (!FMaxisMeshReader::LoadMeshFileFromFile(FPaths::Combine(RootPath, TEXT("GEO/sim3d1.max")), MeshFile, Error))
+	if (!FMaxisMeshReader::LoadMeshFileFromFile(
+			SimCopterOriginalGame::ResolveExistingPath(RootPath, TEXT("GEO/sim3d1.max")), MeshFile, Error))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SimCopter hangar: no palette for the wall textures - %s"), *Error);
 		return nullptr;
@@ -543,7 +544,7 @@ UMaterialInterface* ASimCopterHangar::ResolveCellMaterial(const int32 AtlasCell)
 
 	FMaxisCompositeBitmap Pages;
 	if (!FMaxisTextureReader::LoadCompositeBitmapFromFile(
-			FPaths::Combine(RootPath, TEXT("BMP/SIM3D.BMP")),
+			SimCopterOriginalGame::ResolveExistingPath(RootPath, TEXT("BMP/SIM3D.BMP")),
 			MeshFile.ColorMap,
 			Pages,
 			Error))
